@@ -5,7 +5,7 @@ import feedparser
 import requests
 
 # --- CONFIGURACIÓN ---
-WEBHOOK_VIDEOS = "https://discord.com/api/webhooks/1566500612781248594/2tAItcclgTVWZ1pIBQnIck5DU-h3Kxwk-B0DgHrX5Xdz8YnuU4C1K-B-Eytj2D_1GXUZ"
+WEBHOOK_VIDEOS = "https://discord.com/api/webhooks/1566498219444281394/tcznJWBz4wPnBV5TLmS86_DqCUgKpYyQ6QgOp7JswiOebXnVTiFZ5ulWTfdCmK04Jlyr"
 WEBHOOK_STREAMS = "https://discord.com/api/webhooks/1566498273957650514/TT6B0JCkA6qzqeWppBZZFxVRwF1E6W4XHFENmRES_jOFhxB9tRe81FipP67Q7B5A4lZ5"
 CHANNEL_ID = "UCWvnoVMxxM6L2kEHHCCArlg"
 API_KEY_YOUTUBE = "AQUÍ_TU_API_KEY_DE_YOUTUBE" # Opcional si usas la API para directos
@@ -28,7 +28,7 @@ def guardar_vistos(archivo, vistos_set):
     with open(archivo, "w") as f:
         json.dump(list(vistos_set), f)
 
-# --- VERIFICAR VÍDEOS NUEVOS (VÍA RSS) ---
+# --- VERIFICAR VÍDEOS NUEVOS (FILTRANDO SHORTS) ---
 def chequear_videos():
     vistos = cargar_vistos(FILE_VIDEOS)
     feed = feedparser.parse(RSS_URL)
@@ -36,7 +36,18 @@ def chequear_videos():
     if not feed.entries:
         return
 
-    latest = feed.entries[0]
+    # Buscamos el primer video que NO sea un Short
+    latest = None
+    for entry in feed.entries:
+        link = entry.link
+        # Los shorts de YouTube suelen incluir /shorts/ en su enlace en el RSS
+        if "/shorts/" not in link:
+            latest = entry
+            break
+            
+    if not latest:
+        return
+
     video_id = latest.id
     title = latest.title
     link = latest.link
@@ -90,12 +101,5 @@ def chequear_streams():
 # --- BUCLE PRINCIPAL ---
 if __name__ == "__main__":
     print("Bot de notificaciones iniciado correctamente...")
-    while True:
-        try:
-            chequear_videos()
-            chequear_streams()
-        except Exception as e:
-            print(f"Error en el ciclo principal: {e}")
-        
-        # El bot revisará cada 5 minutos (300 segundos)
-        time.sleep(300)
+    chequear_videos()
+    chequear_streams()
